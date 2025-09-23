@@ -1,0 +1,22 @@
+{
+  "placeholderImages": [
+    {
+      "id": "puzzle-1",
+      "description": "A scenic landscape for the sliding puzzle.",
+      "imageUrl": "https://picsum.photos/seed/puzzle1/400/400",
+      "imageHint": "nature landscape"
+    },
+    {
+      "id": "puzzle-2",
+      "description": "A vibrant cityscape at night.",
+      "imageUrl": "https://picsum.photos/seed/puzzle2/400/400",
+      "imageHint": "city night"
+    },
+    {
+      "id": "puzzle-3",
+      "description": "An adorable puppy playing in a field.",
+      "imageUrl": "https://picsum.photos/seed/puzzle3/400/400",
+      "imageHint": "cute puppy"
+    }
+  ]
+}
