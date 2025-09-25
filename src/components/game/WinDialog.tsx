@@ -7,14 +7,19 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Trophy } from 'lucide-react';
+import { Loader2, Trophy } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { Button } from '../ui/button';
 
 type WinDialogProps = {
   winner: string | null;
   onReset: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  isClaiming?: boolean;
+  isReporting?: boolean;
+  gameResult?: string | null;
+  opponent?: 'ai' | 'human';
 };
 
 const Confetti = () => {
@@ -38,15 +43,28 @@ const Confetti = () => {
     return <div className="confetti-container">{pieces}</div>;
   };
 
-export default function WinDialog({ winner, onReset, open, onOpenChange }: WinDialogProps) {
-  const title = winner === 'draw' ? "It's a Draw!" : 'Congratulations!';
+export default function WinDialog({ winner, onReset, open, onOpenChange, isClaiming, isReporting, gameResult, opponent }: WinDialogProps) {
+  const isPlayerWinner = winner && winner.toLowerCase() !== 'draw' && (winner === 'X' || winner === 'White' || winner === 'Red' || winner === 'You');
+
+  const title = winner === 'draw' ? "It's a Draw!" : isPlayerWinner ? 'Congratulations!' : 'Game Over!';
   
-  let description = "The game has ended.";
-  if (winner === 'draw') {
-    description = 'A hard-fought battle ends in a tie.';
-  } else if (winner) {
-    const winnerName = winner.charAt(0).toUpperCase() + winner.slice(1);
+  let description = `The game has ended in a draw. Your stake has been added to the prize pool.`;
+  if (winner && winner !== 'draw') {
+    const winnerName = winner === 'X' ? 'Player 1' : winner === 'O' ? 'Player 2' : winner;
     description = `${winnerName} has won the game!`;
+  }
+  
+  const getWeb3Description = () => {
+    if (isClaiming) return "Processing your winnings on the blockchain...";
+    if (isReporting) return "Recording game result on the blockchain...";
+
+    if(gameResult === 'win') return "You won! Your winnings have been sent to your wallet."
+    if(gameResult === 'loss') return "You lost. Your stake has been added to the prize pool."
+    if(gameResult === 'draw') return "It's a draw. Your stake has been added to the prize pool."
+
+    if(winner === 'draw') return "It's a draw. Your stake will be added to the prize pool.";
+    if (isPlayerWinner) return "You won! Claim your winnings now.";
+    return "You lost. Your stake will be added to the prize pool.";
   }
 
 
@@ -91,24 +109,31 @@ export default function WinDialog({ winner, onReset, open, onOpenChange }: WinDi
         `}
         </style>
       <AlertDialogContent className="w-full max-w-sm text-center overflow-hidden">
-        {open && winner !== 'draw' && <Confetti />}
+        {open && isPlayerWinner && <Confetti />}
         <AlertDialogHeader className="relative z-10">
           <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center">
             {winner !== 'draw' ? (
-                <div className="dancing-character">🎉</div>
+                isPlayerWinner ? <div className="dancing-character">🎉</div> : <div className="text-6xl">😢</div>
             ) : (
                 <div className="text-6xl">🤝</div>
             )}
           </div>
           <AlertDialogTitle className="text-3xl font-bold font-headline">{title}</AlertDialogTitle>
           <AlertDialogDescription className="text-lg">
-            {description}
+            {opponent === 'ai' ? getWeb3Description() : description}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:justify-center relative z-10">
-          <AlertDialogAction onClick={onReset} className="w-full">
-            Play Again
-          </AlertDialogAction>
+            {isClaiming || isReporting ? (
+                <Button disabled className='w-full'>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                </Button>
+            ) : (
+                <AlertDialogAction onClick={onReset} className="w-full">
+                    Play Again
+                </AlertDialogAction>
+            )}
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

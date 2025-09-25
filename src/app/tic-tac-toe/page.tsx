@@ -19,7 +19,7 @@ export default function TicTacToePage() {
           Tic Tac <span className="gradient-text">Toe</span>
         </h1>
         <p className="mt-4 max-w-xl text-center text-lg text-muted-foreground">
-          Challenge the unbeatable AI or play against a friend. The first to get three in a row wins.
+          Stake, play, and win! Challenge the unbeatable AI or a friend. First to get three in a row wins the pot.
         </p>
         <Card className="w-full max-w-md mt-8 shadow-2xl shadow-primary/10 border-primary/20 border">
             <CardContent className="p-4 sm:p-6">

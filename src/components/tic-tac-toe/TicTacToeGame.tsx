@@ -8,6 +8,9 @@ import { X, Circle, Bot, User, Loader2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
+import { useGameContract } from '@/hooks/useGameContract';
+import { useWallets } from '@privy-io/react-auth';
+import StakeDialog from '../game/StakeDialog';
 
 type Player = 'X' | 'O';
 type Opponent = 'human' | 'ai';
@@ -23,6 +26,32 @@ export default function TicTacToeGame() {
   const [opponent, setOpponent] = useState<Opponent>('ai');
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [isAiTurn, setIsAiTurn] = useState(false);
+  const [isGameActive, setIsGameActive] = useState(false);
+
+  const { wallets } = useWallets();
+  const embeddedWallet = wallets.find((wallet) => wallet.walletClientType === 'privy');
+
+  const {
+    stake,
+    claimWinnings,
+    hasActiveStake,
+    stakeAmount,
+    isStaking,
+    isClaiming,
+    gameResult,
+    isReporting,
+    reportLoss,
+    reportDraw,
+  } = useGameContract(embeddedWallet);
+
+  useEffect(() => {
+    if (opponent === 'human') {
+        setIsGameActive(true);
+    } else {
+        setIsGameActive(hasActiveStake);
+    }
+  }, [hasActiveStake, opponent])
+
 
   const difficultyMap: { [key in Difficulty]: number } = {
     easy: 0,
@@ -54,10 +83,13 @@ export default function TicTacToeGame() {
     setCurrentPlayer(PLAYER);
     setWinner(null);
     setIsAiTurn(false);
+    if(opponent === 'ai') {
+        setIsGameActive(false);
+    }
   };
 
   const makeMove = (index: number, player: Player) => {
-    if (board[index] || winner) {
+    if (board[index] || winner || !isGameActive) {
       return;
     }
     const newBoard = [...board];
@@ -67,6 +99,15 @@ export default function TicTacToeGame() {
     const newWinner = checkWinner(newBoard);
     if (newWinner) {
       setWinner(newWinner);
+      if (opponent === 'ai') {
+        if(newWinner === PLAYER) {
+            claimWinnings();
+        } else if (newWinner === AI_PLAYER) {
+            reportLoss();
+        } else if (newWinner === 'draw') {
+            reportDraw();
+        }
+      }
     } else {
       const nextPlayer = player === 'X' ? 'O' : 'X';
       setCurrentPlayer(nextPlayer);
@@ -141,7 +182,7 @@ export default function TicTacToeGame() {
   };
 
   useEffect(() => {
-    if (opponent === 'ai' && currentPlayer === AI_PLAYER && !winner) {
+    if (opponent === 'ai' && currentPlayer === AI_PLAYER && !winner && isGameActive) {
       setIsAiTurn(true);
       const aiThinkTime = Math.random() * 500 + 500;
       
@@ -154,7 +195,7 @@ export default function TicTacToeGame() {
       }, aiThinkTime);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPlayer, winner, opponent, difficulty]);
+  }, [currentPlayer, winner, opponent, difficulty, isGameActive]);
 
   const handleClick = (index: number) => {
     if (opponent === 'human') {
@@ -166,7 +207,7 @@ export default function TicTacToeGame() {
 
   const renderCell = (index: number) => {
     const value = board[index];
-    const isClickable = !value && !winner && !isAiTurn;
+    const isClickable = !value && !winner && !isAiTurn && isGameActive;
     
     const winPatterns = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
     const winningLine = winner && winner !== 'draw' ? winPatterns.find(p => p.every(i => board[i] === winner)) : null;
@@ -193,73 +234,88 @@ export default function TicTacToeGame() {
   
   return (
     <div className="flex flex-col items-center gap-6 w-full">
-      <div className="w-full max-w-sm flex flex-col gap-4">
-        <Label className="text-center font-semibold">Opponent</Label>
-        <RadioGroup
-          value={opponent}
-          onValueChange={(value: Opponent) => {
-            setOpponent(value)
-            handleReset();
-          }}
-          className="grid grid-cols-2 gap-4"
-        >
-          <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-            <RadioGroupItem value="human" id="human" className="sr-only" />
-            <User className="mb-3 h-6 w-6" />
-            Human
-          </Label>
-          <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
-            <RadioGroupItem value="ai" id="ai" className="sr-only" />
-            <Bot className="mb-3 h-6 w-6" />
-            AI
-          </Label>
-        </RadioGroup>
-        
-        {opponent === 'ai' && (
-          <div className="flex flex-col gap-3 pt-2">
-            <Label htmlFor="difficulty-slider" className="text-center font-semibold">
-              Difficulty: <span className="capitalize text-primary">{difficulty}</span>
-            </Label>
-            <Slider
-              id="difficulty-slider"
-              min={0}
-              max={2}
-              step={1}
-              value={[difficultyMap[difficulty]]}
-              onValueChange={([value]) => setDifficulty(difficultyLabels[value])}
-              disabled={isAiTurn}
+        {!isGameActive && opponent === 'ai' ? (
+            <StakeDialog 
+                open={!isGameActive && opponent === 'ai'}
+                onStake={stake}
+                isStaking={isStaking}
+                stakeAmount={stakeAmount}
             />
-          </div>
+        ) : (
+            <>
+                <div className="w-full max-w-sm flex flex-col gap-4">
+                    <Label className="text-center font-semibold">Opponent</Label>
+                    <RadioGroup
+                    value={opponent}
+                    onValueChange={(value: Opponent) => {
+                        setOpponent(value)
+                        handleReset();
+                    }}
+                    className="grid grid-cols-2 gap-4"
+                    >
+                    <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                        <RadioGroupItem value="human" id="human" className="sr-only" />
+                        <User className="mb-3 h-6 w-6" />
+                        Human
+                    </Label>
+                    <Label className="flex flex-col items-center justify-center rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary">
+                        <RadioGroupItem value="ai" id="ai" className="sr-only" />
+                        <Bot className="mb-3 h-6 w-6" />
+                        AI
+                    </Label>
+                    </RadioGroup>
+                    
+                    {opponent === 'ai' && (
+                    <div className="flex flex-col gap-3 pt-2">
+                        <Label htmlFor="difficulty-slider" className="text-center font-semibold">
+                        Difficulty: <span className="capitalize text-primary">{difficulty}</span>
+                        </Label>
+                        <Slider
+                        id="difficulty-slider"
+                        min={0}
+                        max={2}
+                        step={1}
+                        value={[difficultyMap[difficulty]]}
+                        onValueChange={([value]) => setDifficulty(difficultyLabels[value])}
+                        disabled={isAiTurn}
+                        />
+                    </div>
+                    )}
+                </div>
+
+                <div className={cn("grid grid-cols-3 w-full p-2 bg-card rounded-xl border border-border overflow-hidden")}>
+                    {board.map((_, index) => renderCell(index))}
+                </div>
+
+                <div className="h-8">
+                    {isAiTurn ? (
+                    <div className="flex items-center text-lg font-semibold text-muted-foreground animate-pulse">
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        AI is thinking...
+                    </div>
+                    ) : !winner && (
+                    <p className="text-lg font-semibold text-muted-foreground">
+                        {`Player ${currentPlayer}'s Turn`}
+                    </p>
+                    )}
+                </div>
+
+                <Button onClick={handleReset} variant="outline" className="w-full">
+                    Reset Game
+                </Button>
+
+                <WinDialog
+                    winner={winner}
+                    onReset={handleReset}
+                    open={!!winner}
+                    onOpenChange={(open) => !open && setWinner(null)}
+                    isClaiming={isClaiming}
+                    isReporting={isReporting}
+                    gameResult={gameResult}
+                    opponent={opponent}
+                />
+            </>
         )}
-      </div>
-
-      <div className={cn("grid grid-cols-3 w-full p-2 bg-card rounded-xl border border-border overflow-hidden")}>
-        {board.map((_, index) => renderCell(index))}
-      </div>
-
-      <div className="h-8">
-        {isAiTurn ? (
-           <div className="flex items-center text-lg font-semibold text-muted-foreground animate-pulse">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            AI is thinking...
-           </div>
-        ) : !winner && (
-          <p className="text-lg font-semibold text-muted-foreground">
-            {`Player ${currentPlayer}'s Turn`}
-          </p>
-        )}
-      </div>
-
-      <Button onClick={handleReset} variant="outline" className="w-full">
-        Reset Game
-      </Button>
-
-      <WinDialog
-        winner={winner}
-        onReset={handleReset}
-        open={!!winner}
-        onOpenChange={(open) => !open && setWinner(null)}
-      />
     </div>
   );
 }

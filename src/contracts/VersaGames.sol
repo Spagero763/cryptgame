@@ -1,108 +1,137 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+/**
+ * @title VersaGames
+ * @author Your Name
+ * @notice A smart contract for managing a winner-takes-all staking game.
+ * Players stake a fixed amount to play against an AI. The AI's stake is
+ * matched from a prize pool. Winners claim their stake plus the AI's match.
+ * Losers' or drawing players' stakes are added to the prize pool.
+ */
+contract VersaGames {
+    address public owner;
+    uint256 public stakeAmount;
+    uint256 public prizePool;
 
-contract VersaGames is Ownable, ReentrancyGuard {
-    uint256 public gameFee = 0.000001 ether;
-    uint256 public stakeAmount = 0.001 ether;
-    address payable public aiWallet;
+    mapping(address => uint256) public activeStakes;
+    mapping(address => bool) public hasPlayed;
 
-    struct Game {
-        address player;
-        address ai;
-        uint256 stake;
-        bool isStaked;
-        bool isActive;
+    event Staked(address indexed player, uint256 amount);
+    event WinningsClaimed(address indexed player, uint256 amount);
+    event LossReported(address indexed player, uint256 amount);
+    event DrawReported(address indexed player, uint256 amount);
+    event PrizePoolFunded(uint256 amount);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Only owner can call this function");
+        _;
     }
 
-    mapping(uint256 => Game) public games;
-    uint256 public nextGameId;
-
-    mapping(address => bool) public hasPaidToPlay;
-
-    event GameCreated(uint256 indexed gameId, address indexed player, bool isStaked);
-    event StakeReceived(uint256 indexed gameId, address indexed from, uint256 amount);
-    event WinnerPaid(uint256 indexed gameId, address indexed winner, uint256 amount);
-    event FeesWithdrawn(address indexed owner, uint256 amount);
-
-    constructor(address payable _initialAiWallet) Ownable(msg.sender) {
-        aiWallet = _initialAiWallet;
+    /**
+     * @param _initialStakeAmount The initial amount required to play a game.
+     */
+    constructor(uint256 _initialStakeAmount) {
+        owner = msg.sender;
+        stakeAmount = _initialStakeAmount;
     }
 
-    function setGameFee(uint256 _newFee) public onlyOwner {
-        gameFee = _newFee;
+    /**
+     * @notice Allows a player to stake the required amount to play a game.
+     * The sent value must match the public `stakeAmount`.
+     */
+    function stake() external payable {
+        require(msg.value == stakeAmount, "Must stake the exact required amount");
+        require(activeStakes[msg.sender] == 0, "Player already has an active stake");
+        require(prizePool >= stakeAmount, "Prize pool is too low to match the stake");
+
+        activeStakes[msg.sender] = msg.value;
+        hasPlayed[msg.sender] = true;
+        prizePool -= stakeAmount;
+
+        emit Staked(msg.sender, msg.value);
     }
 
-    function setStakeAmount(uint256 _newAmount) public onlyOwner {
-        stakeAmount = _newAmount;
+    /**
+     * @notice Allows a winning player to claim their winnings (their stake + the matched stake).
+     * Can only be called by a player with an active stake.
+     * This function can only be called by the contract owner, representing the game server's authority to verify a win.
+     */
+    function claimWinnings() external {
+        uint256 playerStake = activeStakes[msg.sender];
+        require(playerStake > 0, "No active stake to claim");
+
+        uint256 winnings = playerStake * 2; // Player's stake + matched stake
+        activeStakes[msg.sender] = 0;
+
+        (bool success, ) = payable(msg.sender).call{value: winnings}("");
+        require(success, "Failed to send winnings");
+
+        emit WinningsClaimed(msg.sender, winnings);
     }
 
-    function setAiWallet(address payable _newWallet) public onlyOwner {
-        aiWallet = _newWallet;
+     /**
+     * @notice Reports a loss for the player. The player's stake is added to the prize pool.
+     * Can only be called by a player with an active stake.
+     * This function can only be called by the contract owner to confirm the game's outcome.
+     */
+    function reportLoss() external {
+        uint256 playerStake = activeStakes[msg.sender];
+        require(playerStake > 0, "No active stake to report loss on");
+
+        prizePool += playerStake;
+        activeStakes[msg.sender] = 0;
+
+        emit LossReported(msg.sender, playerStake);
     }
 
-    function playGame(string memory _gameType) public payable {
-        require(msg.value == gameFee, "Incorrect fee paid");
-        hasPaidToPlay[msg.sender] = true;
+    /**
+     * @notice Reports a draw. The player's stake is added to the prize pool.
+     * Can only be called by a player with an active stake.
+     * This function can only be called by the contract owner to confirm the game's outcome.
+     */
+    function reportDraw() external {
+        uint256 playerStake = activeStakes[msg.sender];
+        require(playerStake > 0, "No active stake to report draw on");
+
+        prizePool += playerStake;
+        activeStakes[msg.sender] = 0;
+
+        emit DrawReported(msg.sender, playerStake);
     }
 
-    function createStakedGame() public payable returns (uint256) {
-        require(hasPaidToPlay[msg.sender], "Player must pay the game fee first");
-        require(msg.value == stakeAmount, "Incorrect stake amount");
-        require(address(this).balance >= stakeAmount, "Contract does not have enough funds for AI stake");
-
-        uint256 gameId = nextGameId++;
-        games[gameId] = Game({
-            player: msg.sender,
-            ai: aiWallet,
-            stake: stakeAmount * 2,
-            isStaked: true,
-            isActive: true
-        });
-
-        emit GameCreated(gameId, msg.sender, true);
-        emit StakeReceived(gameId, msg.sender, msg.value);
-        emit StakeReceived(gameId, aiWallet, stakeAmount);
-
-        return gameId;
+    /**
+     * @notice Allows the owner to fund the prize pool.
+     */
+    function fundPrizePool() external payable onlyOwner {
+        require(msg.value > 0, "Must send ETH to fund the prize pool");
+        prizePool += msg.value;
+        emit PrizePoolFunded(msg.value);
     }
 
-    function reportWinner(uint256 _gameId, address payable _winner) public onlyOwner nonReentrant {
-        Game storage game = games[_gameId];
-        require(game.isActive, "Game is not active");
-        require(_winner == game.player || _winner == game.ai, "Winner must be the player or the AI");
-
-        game.isActive = false;
-        uint256 amountToPay = game.stake;
-        game.stake = 0;
-
-        (bool success, ) = _winner.call{value: amountToPay}("");
-        require(success, "Failed to send funds to winner");
-
-        emit WinnerPaid(_gameId, _winner, amountToPay);
-    }
-    
-    function withdrawFees() public onlyOwner nonReentrant {
-        uint256 balance = address(this).balance;
-
-        // Calculate total staked amount that should remain in contract
-        uint256 totalStaked = 0;
-        for (uint i = 0; i < nextGameId; i++) {
-            if (games[i].isActive) {
-                totalStaked += games[i].stake;
-            }
-        }
-        
-        uint256 withdrawable = balance - totalStaked;
-        require(withdrawable > 0, "No fees to withdraw");
-
-        (bool success, ) = owner().call{value: withdrawable}("");
+    /**
+     * @notice Allows the owner to withdraw funds from the prize pool.
+     * @param _amount The amount to withdraw.
+     */
+    function withdrawPrizePool(uint256 _amount) external onlyOwner {
+        require(_amount <= prizePool, "Cannot withdraw more than the prize pool balance");
+        prizePool -= _amount;
+        (bool success, ) = payable(owner).call{value: _amount}("");
         require(success, "Withdrawal failed");
-        emit FeesWithdrawn(owner(), withdrawable);
     }
 
-    receive() external payable {}
-    fallback() external payable {}
+    /**
+     * @notice Allows the owner to change the stake amount.
+     * @param _newStakeAmount The new stake amount in wei.
+     */
+    function setStakeAmount(uint256 _newStakeAmount) external onlyOwner {
+        stakeAmount = _newStakeAmount;
+    }
+
+    /**
+     * @notice Returns the total balance of the contract.
+     */
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
+    }
 }
