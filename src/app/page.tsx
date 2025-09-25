@@ -2,13 +2,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, ScanSearch, Swords, BrainCircuit, Puzzle, Crown, LogIn, ShieldCheck, Loader2 } from 'lucide-react';
+import { LayoutGrid, ScanSearch, Swords, BrainCircuit, Puzzle, Crown, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { usePrivy } from '@privy-io/react-auth';
-import { usePayFee, useGameFee, useHasPaid } from '@/hooks/useGameContract';
-import { useToast } from '@/hooks/use-toast';
-import { formatEther } from 'viem';
-import { useEffect } from 'react';
 
 const games = [
   {
@@ -51,37 +47,6 @@ const games = [
 
 export default function Home() {
   const { ready, authenticated, login } = usePrivy();
-  const { toast } = useToast();
-  const { write: payFee, isPending, isSuccess } = usePayFee();
-  const { data: gameFee, isLoading: isFeeLoading } = useGameFee();
-  const { data: hasPaid, refetch: refetchHasPaid } = useHasPaid();
-
-  useEffect(() => {
-    if (isSuccess) {
-      toast({ title: 'Payment Successful!', description: 'You can now play all games.' });
-      refetchHasPaid();
-    }
-  }, [isSuccess, toast, refetchHasPaid]);
-
-  const handlePay = () => {
-    if (!ready || !authenticated) {
-      login();
-      return;
-    }
-    
-    if (gameFee === undefined || gameFee === null) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Could not fetch game fee.' });
-      return;
-    }
-
-    payFee({ functionName: 'playGame', value: gameFee }, {
-      onError: (err) => {
-        toast({ variant: 'destructive', title: 'Payment Failed', description: err.message });
-      }
-    });
-  };
-
-  const formattedFee = gameFee ? formatEther(gameFee) : '...';
 
   return (
     <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
@@ -102,7 +67,7 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-6">
-                Connect your wallet or sign up with email to start playing.
+                Sign up with email to start playing.
               </p>
               <Button onClick={login} size="lg">
                 <LogIn className="mr-2" />
@@ -110,32 +75,6 @@ export default function Home() {
               </Button>
             </CardContent>
           </Card>
-        </div>
-      ) : !hasPaid ? (
-        <div className="text-center mt-16">
-            <Card className="max-w-md mx-auto bg-gradient-to-br from-card to-secondary/30">
-                <CardHeader>
-                    <CardTitle className="text-2xl">Pay to Play</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-muted-foreground mb-6">
-                        To access all games, a one-time fee of <span className="font-bold text-primary">{formattedFee} BASE Sepolia ETH</span> is required.
-                    </p>
-                    <Button onClick={handlePay} size="lg" disabled={isPending || isFeeLoading}>
-                        {isPending ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Processing...
-                            </>
-                        ) : (
-                            <>
-                                <ShieldCheck className="mr-2" />
-                                Pay and Unlock All Games
-                            </>
-                        )}
-                    </Button>
-                </CardContent>
-            </Card>
         </div>
       ) : (
         <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-3">

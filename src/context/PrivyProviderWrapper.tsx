@@ -1,19 +1,7 @@
 'use client';
 
 import { PrivyProvider } from '@privy-io/react-auth';
-import { WagmiProvider, createConfig } from '@privy-io/wagmi';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { http } from 'wagmi';
-import { baseSepolia } from 'wagmi/chains';
-
-const queryClient = new QueryClient();
-
-export const wagmiConfig = createConfig({
-  chains: [baseSepolia],
-  transports: {
-    [baseSepolia.id]: http(),
-  },
-});
+import { baseSepolia } from 'viem/chains';
 
 export function PrivyProviderWrapper({
   children,
@@ -24,7 +12,7 @@ export function PrivyProviderWrapper({
     <PrivyProvider
       appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || 'clsm1p9E50000jF0F1Q2R3E4A'}
       config={{
-        loginMethods: ['email', 'wallet'],
+        loginMethods: ['email'],
         appearance: {
           theme: 'dark',
           accentColor: '#673ab7',
@@ -36,11 +24,7 @@ export function PrivyProviderWrapper({
         defaultChain: baseSepolia
       }}
     >
-      <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig} reconnectOnMount={true}>
-            {children}
-        </WagmiProvider>
-      </QueryClientProvider>
+        {children}
     </PrivyProvider>
   );
 }
