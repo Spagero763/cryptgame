@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LayoutGrid, ScanSearch, Swords, BrainCircuit, Puzzle, Crown, LogIn } from 'lucide-react';
+import { ScanSearch, Swords, BrainCircuit, Puzzle, Crown, LogIn } from 'lucide-react';
 import Link from 'next/link';
 import { useAccount } from 'wagmi';
 import { useWeb3Modal } from '@web3modal/wagmi/react';
@@ -19,12 +19,6 @@ const games = [
     description: 'Put your vocabulary to the test. Play against a friend or a cunning AI.',
     href: '/scrabble',
     icon: <ScanSearch className="h-12 w-12 text-primary" />,
-  },
-  {
-    title: 'Sliding Puzzle',
-    description: 'Solve the puzzle by arranging the tiles in order. A true test of logic.',
-    href: '/puzzle',
-    icon: <LayoutGrid className="h-12 w-12 text-primary" />,
   },
   {
     title: 'Memory Match',
