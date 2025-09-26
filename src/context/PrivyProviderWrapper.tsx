@@ -15,7 +15,7 @@ export function PrivyProviderWrapper({
 }) {
   return (
     <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || 'clwscv7bs002c11v8j43346i9'}
       config={{
         loginMethods: ['email', 'wallet'],
         appearance: {
@@ -28,7 +28,7 @@ export function PrivyProviderWrapper({
         },
         defaultChain: baseSepolia,
         walletConnect: {
-          projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ''
+          projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'ed4e0bdab7fa4cab75a28255604592df'
         }
       }}
     >
