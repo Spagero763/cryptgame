@@ -7,11 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { notFound } from 'next/navigation';
 
-interface PuzzlePageProps {
-  params: { id: string };
-}
-
-export default function PuzzlePage({ params }: PuzzlePageProps) {
+export default function PuzzlePage({ params }: { params: { id: string } }) {
   const puzzleId = params.id;
   const puzzleImage = PlaceHolderImages.find(img => img.id === puzzleId);
 
