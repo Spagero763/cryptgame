@@ -12,7 +12,6 @@ import {
 import { Button } from '../ui/button';
 import { Loader2, Coins } from 'lucide-react';
 import { useGameContract } from '@/hooks/useGameContract';
-import { useWallets } from '@privy-io/react-auth';
 import { useState } from 'react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -23,9 +22,7 @@ type FundPoolDialogProps = {
 };
 
 export default function FundPoolDialog({ open, onOpenChange }: FundPoolDialogProps) {
-  const { wallets } = useWallets();
-  const embeddedWallet = wallets.find((wallet) => wallet.walletClientType === 'privy');
-  const { fundPrizePool, isFunding } = useGameContract(embeddedWallet);
+  const { fundPrizePool, isFunding } = useGameContract();
   const [amount, setAmount] = useState('0.01');
 
   const handleFund = async () => {

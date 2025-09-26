@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAccount } from 'wagmi';
 import { contractAbi } from '@/lib/web3/abi';
 import { useToast } from './use-toast';
-import type { ConnectedWallet } from '@privy-io/react-auth';
 import { parseEther } from 'viem';
+import { baseSepolia } from 'viem/chains';
 
 const contractAddress = '0x9Ac4e9cf67378ae43CC05786CB8C4B0c87795290' as `0x${string}`;
 
-export function useGameContract(wallet: ConnectedWallet | undefined) {
+export function useGameContract() {
   const { toast } = useToast();
-  const { address } = useAccount();
+  const { address, chain } = useAccount();
   const { data: hash, writeContract, isPending: isStaking, error: writeError } = useWriteContract();
   const { data: claimHash, writeContract: writeClaim, isPending: isClaiming, error: claimWriteError } = useWriteContract();
   const { data: fundHash, writeContract: writeFund, isPending: isFunding, error: fundWriteError } = useWriteContract();
@@ -71,11 +71,14 @@ export function useGameContract(wallet: ConnectedWallet | undefined) {
 
 
   const stake = async () => {
-    if (!wallet) {
+    if (!address) {
       toast({ variant: 'destructive', title: 'Wallet not connected', description: 'Please connect your wallet to stake.' });
       return;
     }
-    await wallet.switchChain(84532);
+    if (chain?.id !== baseSepolia.id) {
+        toast({ variant: 'destructive', title: 'Wrong Network', description: `Please switch to Base Sepolia.` });
+        return;
+    }
     writeContract({
       address: contractAddress,
       abi: contractAbi,
@@ -85,11 +88,14 @@ export function useGameContract(wallet: ConnectedWallet | undefined) {
   };
 
   const claimWinnings = async () => {
-     if (!wallet) {
+     if (!address) {
       toast({ variant: 'destructive', title: 'Wallet not connected' });
       return;
     }
-    await wallet.switchChain(84532);
+     if (chain?.id !== baseSepolia.id) {
+        toast({ variant: 'destructive', title: 'Wrong Network', description: `Please switch to Base Sepolia.` });
+        return;
+    }
     writeClaim({
         address: contractAddress,
         abi: contractAbi,
@@ -98,11 +104,14 @@ export function useGameContract(wallet: ConnectedWallet | undefined) {
   }
 
   const fundPrizePool = async (amount: string) => {
-    if (!wallet) {
+    if (!address) {
       toast({ variant: 'destructive', title: 'Wallet not connected' });
       return;
     }
-    await wallet.switchChain(84532);
+    if (chain?.id !== baseSepolia.id) {
+        toast({ variant: 'destructive', title: 'Wrong Network', description: `Please switch to Base Sepolia.` });
+        return;
+    }
     writeFund({
         address: contractAddress,
         abi: contractAbi,

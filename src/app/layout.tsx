@@ -4,7 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/Header';
 import { cn } from '@/lib/utils';
-import { PrivyProviderWrapper } from '@/context/PrivyProviderWrapper';
+import { Web3ModalProvider } from '@/context/Web3ModalProvider';
 
 export const metadata: Metadata = {
   title: 'VersaGames',
@@ -24,13 +24,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn('dark', fontInter.variable)}>
       <body className="font-body antialiased">
-        <PrivyProviderWrapper>
+        <Web3ModalProvider>
           <div className="relative flex min-h-screen w-full flex-col">
             <Header />
             <main className="flex-1 animate-fade-in-up">{children}</main>
           </div>
           <Toaster />
-        </PrivyProviderWrapper>
+        </Web3ModalProvider>
       </body>
     </html>
   );

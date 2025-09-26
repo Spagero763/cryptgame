@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { useGameContract } from '@/hooks/useGameContract';
-import { useWallets } from '@privy-io/react-auth';
+import { useAccount } from 'wagmi';
 import StakeDialog from '../game/StakeDialog';
 
 type Player = 'X' | 'O';
@@ -28,9 +28,6 @@ export default function TicTacToeGame() {
   const [isAiTurn, setIsAiTurn] = useState(false);
   const [isGameActive, setIsGameActive] = useState(false);
 
-  const { wallets } = useWallets();
-  const embeddedWallet = wallets.find((wallet) => wallet.walletClientType === 'privy');
-
   const {
     stake,
     claimWinnings,
@@ -40,7 +37,7 @@ export default function TicTacToeGame() {
     isClaiming,
     gameResult,
     isReporting,
-  } = useGameContract(embeddedWallet);
+  } = useGameContract();
 
   useEffect(() => {
     if (opponent === 'human') {

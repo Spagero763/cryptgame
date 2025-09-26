@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LayoutGrid, ScanSearch, Swords, BrainCircuit, Puzzle, Crown, LogIn } from 'lucide-react';
 import Link from 'next/link';
-import { usePrivy } from '@privy-io/react-auth';
+import { useAccount } from 'wagmi';
+import { useWeb3Modal } from '@web3modal/wagmi/react';
 
 const games = [
   {
@@ -46,7 +47,8 @@ const games = [
 ];
 
 export default function Home() {
-  const { ready, authenticated, login } = usePrivy();
+  const { isConnected } = useAccount();
+  const { open } = useWeb3Modal();
 
   return (
     <div className="container mx-auto px-4 py-12 sm:px-6 lg:px-8">
@@ -59,19 +61,19 @@ export default function Home() {
         </p>
       </header>
 
-      {!ready || !authenticated ? (
+      {!isConnected ? (
         <div className="text-center mt-16">
           <Card className="max-w-md mx-auto bg-gradient-to-br from-card to-secondary/30">
             <CardHeader>
-              <CardTitle className="text-2xl">Please Log In to Play</CardTitle>
+              <CardTitle className="text-2xl">Connect Your Wallet to Play</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-muted-foreground mb-6">
-                Sign up with email to start playing.
+                Connect your wallet to start playing.
               </p>
-              <Button onClick={login} size="lg">
+              <Button onClick={() => open()} size="lg">
                 <LogIn className="mr-2" />
-                Login / Sign Up
+                Connect Wallet
               </Button>
             </CardContent>
           </Card>
