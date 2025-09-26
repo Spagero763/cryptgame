@@ -5,6 +5,7 @@ import { useReadContract, useWriteContract, useWaitForTransactionReceipt, useAcc
 import { contractAbi } from '@/lib/web3/abi';
 import { useToast } from './use-toast';
 import type { ConnectedWallet } from '@privy-io/react-auth';
+import { parseEther } from 'viem';
 
 const contractAddress = '0x9Ac4e9cf67378ae43CC05786CB8C4B0c87795290' as `0x${string}`;
 
@@ -13,6 +14,7 @@ export function useGameContract(wallet: ConnectedWallet | undefined) {
   const { address } = useAccount();
   const { data: hash, writeContract, isPending: isStaking, error: writeError } = useWriteContract();
   const { data: claimHash, writeContract: writeClaim, isPending: isClaiming, error: claimWriteError } = useWriteContract();
+  const { data: fundHash, writeContract: writeFund, isPending: isFunding, error: fundWriteError } = useWriteContract();
   
   const [gameResult, setGameResult] = useState<string | null>(null);
 
@@ -38,6 +40,7 @@ export function useGameContract(wallet: ConnectedWallet | undefined) {
 
   const { isLoading: isTxConfirming, isSuccess: isTxConfirmed } = useWaitForTransactionReceipt({ hash });
   const { isLoading: isClaimConfirming, isSuccess: isClaimConfirmed } = useWaitForTransactionReceipt({ hash: claimHash });
+  const { isLoading: isFundConfirming, isSuccess: isFundConfirmed } = useWaitForTransactionReceipt({ hash: fundHash });
 
   useEffect(() => {
     if (isTxConfirmed) {
@@ -49,11 +52,14 @@ export function useGameContract(wallet: ConnectedWallet | undefined) {
       toast({ title: 'Winnings Claimed!', description: 'Your winnings have been sent to your wallet.' });
       refetchActiveStake();
     }
+    if (isFundConfirmed) {
+        toast({ title: 'Prize Pool Funded!', description: 'Thank you for funding the prize pool.'});
+    }
 
-  }, [isTxConfirmed, isClaimConfirmed, toast, refetchActiveStake]);
+  }, [isTxConfirmed, isClaimConfirmed, isFundConfirmed, toast, refetchActiveStake]);
   
   useEffect(() => {
-    const error = writeError || claimWriteError;
+    const error = writeError || claimWriteError || fundWriteError;
     if (error) {
         toast({
             variant: "destructive",
@@ -61,7 +67,7 @@ export function useGameContract(wallet: ConnectedWallet | undefined) {
             description: error.message,
         });
     }
-  }, [writeError, claimWriteError, toast]);
+  }, [writeError, claimWriteError, fundWriteError, toast]);
 
 
   const stake = async () => {
@@ -91,6 +97,20 @@ export function useGameContract(wallet: ConnectedWallet | undefined) {
     })
   }
 
+  const fundPrizePool = async (amount: string) => {
+    if (!wallet) {
+      toast({ variant: 'destructive', title: 'Wallet not connected' });
+      return;
+    }
+    await wallet.switchChain(84532);
+    writeFund({
+        address: contractAddress,
+        abi: contractAbi,
+        functionName: 'fundPrizePool',
+        value: parseEther(amount),
+    })
+  }
+
   return { 
     stake, 
     stakeAmount, 
@@ -98,6 +118,8 @@ export function useGameContract(wallet: ConnectedWallet | undefined) {
     isStaking: isStaking || isTxConfirming,
     claimWinnings,
     isClaiming: isClaiming || isClaimConfirming,
+    fundPrizePool,
+    isFunding: isFunding || isFundConfirming,
     isReporting: false, // No reporting in this contract version
     gameResult
  };
