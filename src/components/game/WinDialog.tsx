@@ -7,7 +7,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Trophy } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Button } from '../ui/button';
 
@@ -48,9 +48,9 @@ export default function WinDialog({ winner, onReset, open, onOpenChange, isClaim
 
   const title = winner === 'draw' ? "It's a Draw!" : isPlayerWinner ? 'Congratulations!' : 'Game Over!';
   
-  let description = `The game has ended in a draw. Your stake has been added to the prize pool.`;
+  let description = `The game has ended in a draw.`;
   if (winner && winner !== 'draw') {
-    const winnerName = winner === 'X' ? 'Player 1' : winner === 'O' ? 'Player 2' : winner;
+    const winnerName = winner === 'X' ? 'Player 1' : winner === 'O' ? 'The AI' : winner;
     description = `${winnerName} has won the game!`;
   }
   
@@ -59,11 +59,10 @@ export default function WinDialog({ winner, onReset, open, onOpenChange, isClaim
     if (isReporting) return "Recording game result on the blockchain...";
 
     if(gameResult === 'win') return "You won! Your winnings have been sent to your wallet."
-    if(gameResult === 'loss') return "You lost. Your stake has been added to the prize pool."
-    if(gameResult === 'draw') return "It's a draw. Your stake has been added to the prize pool."
+    if(gameResult === 'loss' || (winner && winner !== 'X' && winner !== 'draw')) return "You lost. Your stake has been added to the prize pool."
+    if(gameResult === 'draw' || winner === 'draw') return "It's a draw. Your stake has been added to the prize pool."
 
-    if(winner === 'draw') return "It's a draw. Your stake will be added to the prize pool.";
-    if (isPlayerWinner) return "You won! Claim your winnings now.";
+    if (isPlayerWinner) return "You won! Your winnings are being sent to your wallet.";
     return "You lost. Your stake will be added to the prize pool.";
   }
 

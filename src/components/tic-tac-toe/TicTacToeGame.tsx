@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import WinDialog from '@/components/game/WinDialog';
-import { X, Circle, Bot, User, Loader2 } from 'lucide-react';
+import { X, Circle, Bot, User, Loader2, Undo } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
@@ -14,7 +14,7 @@ import StakeDialog from '../game/StakeDialog';
 
 type Player = 'X' | 'O';
 type Opponent = 'human' | 'ai';
-type Difficulty = 'easy' | 'medium' | 'hard';
+type Difficulty = 'easy' | 'hard';
 
 const PLAYER: Player = 'X';
 const AI_PLAYER: Player = 'O';
@@ -24,7 +24,7 @@ export default function TicTacToeGame() {
   const [currentPlayer, setCurrentPlayer] = useState<Player>(PLAYER);
   const [winner, setWinner] = useState<string | null>(null);
   const [opponent, setOpponent] = useState<Opponent>('ai');
-  const [difficulty, setDifficulty] = useState<Difficulty>('medium');
+  const [difficulty, setDifficulty] = useState<Difficulty>('hard');
   const [isAiTurn, setIsAiTurn] = useState(false);
   const [isGameActive, setIsGameActive] = useState(false);
 
@@ -40,8 +40,6 @@ export default function TicTacToeGame() {
     isClaiming,
     gameResult,
     isReporting,
-    reportLoss,
-    reportDraw,
   } = useGameContract(embeddedWallet);
 
   useEffect(() => {
@@ -55,10 +53,9 @@ export default function TicTacToeGame() {
 
   const difficultyMap: { [key in Difficulty]: number } = {
     easy: 0,
-    medium: 1,
-    hard: 2,
+    hard: 1,
   };
-  const difficultyLabels: Difficulty[] = ['easy', 'medium', 'hard'];
+  const difficultyLabels: Difficulty[] = ['easy', 'hard'];
 
   const checkWinner = (currentBoard: string[]) => {
     const winPatterns = [
@@ -99,14 +96,8 @@ export default function TicTacToeGame() {
     const newWinner = checkWinner(newBoard);
     if (newWinner) {
       setWinner(newWinner);
-      if (opponent === 'ai') {
-        if(newWinner === PLAYER) {
-            claimWinnings();
-        } else if (newWinner === AI_PLAYER) {
-            reportLoss();
-        } else if (newWinner === 'draw') {
-            reportDraw();
-        }
+      if (opponent === 'ai' && newWinner === PLAYER) {
+          claimWinnings();
       }
     } else {
       const nextPlayer = player === 'X' ? 'O' : 'X';
@@ -172,7 +163,7 @@ export default function TicTacToeGame() {
   const getAiMove = (currentBoard: string[], currentDifficulty: Difficulty) => {
     const emptyCells = getEmptyCells(currentBoard);
 
-    if (currentDifficulty === 'easy' || (currentDifficulty === 'medium' && Math.random() > 0.5)) {
+    if (currentDifficulty === 'easy') {
         const randomIndex = Math.floor(Math.random() * emptyCells.length);
         return emptyCells[randomIndex];
     }
@@ -273,7 +264,7 @@ export default function TicTacToeGame() {
                         <Slider
                         id="difficulty-slider"
                         min={0}
-                        max={2}
+                        max={1}
                         step={1}
                         value={[difficultyMap[difficulty]]}
                         onValueChange={([value]) => setDifficulty(difficultyLabels[value])}
@@ -301,7 +292,8 @@ export default function TicTacToeGame() {
                 </div>
 
                 <Button onClick={handleReset} variant="outline" className="w-full">
-                    Reset Game
+                    <Undo className="mr-2 h-4 w-4" />
+                    New Game
                 </Button>
 
                 <WinDialog
