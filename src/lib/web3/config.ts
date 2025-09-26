@@ -1,3 +1,5 @@
+'use client';
+
 import { http } from 'wagmi';
 import { baseSepolia } from 'wagmi/chains';
 import { createConfig } from '@privy-io/wagmi';
@@ -7,4 +9,5 @@ export const wagmiConfig = createConfig({
   transports: {
     [baseSepolia.id]: http(),
   },
+  multiwallet: true,
 });
