@@ -3,7 +3,9 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePrivy } from '@privy-io/react-auth';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LogIn } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,23 +17,22 @@ export default function SignupPage() {
     }
   }, [ready, authenticated, router]);
 
-  useEffect(() => {
-    if (ready && !authenticated) {
-      login();
-    }
-  }, [ready, authenticated, login]);
-  
-
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
-      <div className="flex flex-col items-center gap-4">
-        <Skeleton className="h-12 w-12 rounded-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-[250px]" />
-          <Skeleton className="h-4 w-[200px]" />
-        </div>
-        <p className="text-muted-foreground">Redirecting to login...</p>
-      </div>
+       <Card className="max-w-md mx-auto bg-gradient-to-br from-card to-secondary/30">
+        <CardHeader>
+          <CardTitle className="text-2xl">Create an Account to Play</CardTitle>
+          <CardDescription>
+            Sign up with your email or connect a wallet to start playing all the games.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={login} size="lg" className="w-full">
+            <LogIn className="mr-2" />
+            Sign Up / Login
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
